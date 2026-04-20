@@ -1,24 +1,20 @@
 FROM ubuntu:24.04
 
-ENV container docker
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install systemd + shellinabox
 RUN apt-get update && \
-    apt-get install -y systemd systemd-sysv shellinabox sudo && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y openssh-server sudo && \
+    mkdir /var/run/sshd
 
-# Set root password (change if needed)
+# Create root password (used in Termius)
 RUN echo "root:root" | chpasswd
 
-# Enable shellinabox
-RUN sed -i 's/--no-beep/--no-beep --service=/:LOGIN/' /etc/default/shellinabox || true
+# Allow root login via SSH
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
-# Expose shellinabox
-EXPOSE 4200
+# SSH port
+EXPOSE 22
 
-# Systemd entrypoint
-STOPSIGNAL SIGRTMIN+3
-
-CMD ["/sbin/init"]
+# Start SSH server in foreground
+CMD ["/usr/sbin/sshd", "-D"]
